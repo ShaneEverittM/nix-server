@@ -29,6 +29,9 @@
   networking.hostName = "nixos"; # Define your hostname.
   networking.wireless = {
     enable = true;
+    # The PSK is not in this repo. `ext:psk_Marconi` is substituted from the
+    # `psk_Marconi` variable in secretsFile, which must be created by hand on a
+    # fresh install (root:wpa_supplicant, 0640). See README.md → "Wi-Fi PSK secret".
     secretsFile = "/etc/wpa_supplicant/wireless.conf";
     networks."Marconi".pskRaw = "ext:psk_Marconi";
   };
