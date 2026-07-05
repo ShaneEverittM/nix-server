@@ -92,12 +92,14 @@
   # Allow unfree packages
   nixpkgs.config.allowUnfree = true;
 
-  # List packages installed in system profile. To search, run:
-  # $ nix search wget
+  # List packages installed in system profile
   environment.systemPackages = with pkgs; [
-  #  vim # Do not forget to add an editor to edit configuration.nix! The Nano editor is also installed by default.
-  #  wget
+    # You gotta have it
     neovim
+    # Nix language server (used by Zed over remote SSH)
+    nixd
+    # Nix formatter (`nixfmt`), official RFC 166 style
+    nixfmt
   ];
 
   # Some programs need SUID wrappers, can be configured further or are

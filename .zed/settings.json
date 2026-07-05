@@ -1,0 +1,28 @@
+{
+  "languages": {
+    "Nix": {
+      "language_servers": ["nixd", "!nil"],
+      "format_on_save": "on",
+      "formatter": {
+        "external": {
+          "command": "nixfmt",
+          "arguments": []
+        }
+      }
+    }
+  },
+  "lsp": {
+    "nixd": {
+      "settings": {
+        "nixpkgs": {
+          "expr": "import (builtins.getFlake \"/home/shane/.config/nix\").inputs.nixpkgs { }"
+        },
+        "options": {
+          "nixos": {
+            "expr": "(builtins.getFlake \"/home/shane/.config/nix\").nixosConfigurations.nixos.options"
+          }
+        }
+      }
+    }
+  }
+}
