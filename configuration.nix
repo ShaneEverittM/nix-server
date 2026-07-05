@@ -14,6 +14,8 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
 
+  programs.nix-ld.enable = true;
+
   networking.hostName = "nixos"; # Define your hostname.
   networking.wireless = {
     enable = true;
@@ -59,12 +61,22 @@
     variant = "";
   };
 
+  programs.git = {
+    enable = true;
+    config = {
+      user.name = "Shane Murphy";
+      user.email = "mail@semurphy.com";
+      init.defaultBranch = "main";
+    };
+  };
+
   # Define a user account. Don't forget to set a password with ‘passwd’.
   users.users."shane" = {
     isNormalUser = true;
     description = "Shane Murphy";
     extraGroups = [ "networkmanager" "wheel" ];
-    packages = with pkgs; [];
+    packages = with pkgs; [
+    ];
   };
 
   # Allow unfree packages
