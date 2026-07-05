@@ -1,46 +1,49 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
+# NixOS configuration for a lil' home server.
 { pkgs, ... }:
 
 let
-  # Shane's laptop SSH key. Used both to authorise SSH logins and to sign
-  # git commits/tags — git can sign with an SSH key directly, no GPG needed.
   sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBwRBMnr95gqzkvJHmNDCprKK2QcV2vNQVS6mAsGzcz3";
-  gitEmail = "mail@semurphy.com";
+  email = "mail@semurphy.com";
 in
 {
-  imports = [
-    # Include the results of the hardware scan.
-    ./hardware-configuration.nix
-  ];
+  # Grab the generated config from the installer, mostly just kernel modules and filesystem mounts.
+  imports = [ ./hardware-configuration.nix ];
 
-  # Bootloader.
+  # The version this configration is authored against.
+  system.stateVersion = "26.05";
+
+  # Use Sytemd as the boot manager.
   boot.loader.systemd-boot.enable = true;
+
+  # Enable modifying EFI variables (rollback).
   boot.loader.efi.canTouchEfiVariables = true;
 
+  # Enable running non-nix-built binaries (Zed remote SSH server).
   programs.nix-ld.enable = true;
 
+  # Enable known-stable experimental features.
   nix.settings.experimental-features = [
     "nix-command"
     "flakes"
   ];
 
+  # Use the `nh` CLI for managing build/switch.
   programs.nh = {
     enable = true;
     flake = "/home/shane/.config/nix";
   };
 
-  networking.hostName = "nixos"; # Define your hostname.
+  # Set the hostname.
+  networking.hostName = "nixos";
+
+  # Configure wireless to autoconnect, see README.md for PSK notes.
   networking.wireless = {
     enable = true;
-    # The PSK is not in this repo. `ext:psk_Marconi` is substituted from the
-    # `psk_Marconi` variable in secretsFile, which must be created by hand on a
-    # fresh install (root:wpa_supplicant, 0640). See README.md → "Wi-Fi PSK secret".
     secretsFile = "/etc/wpa_supplicant/wireless.conf";
     networks."Marconi".pskRaw = "ext:psk_Marconi";
   };
+
+  # Enable hostname publishing, so that `ssh <user>@<hostname>` works.
   services.avahi = {
     enable = true;
     nssmdns4 = true;
@@ -49,19 +52,12 @@ in
       addresses = true;
     };
   };
-  # Configure network proxy if necessary
-  # networking.proxy.default = "http://user:password@proxy:port/";
-  # networking.proxy.noProxy = "127.0.0.1,localhost,internal.domain";
 
-  # Enable networking
-  # networking.networkmanager.enable = true;
-
-  # Set your time zone.
+  # Gotta have a time zone.
   time.timeZone = "America/Los_Angeles";
 
   # Select internationalisation properties.
   i18n.defaultLocale = "en_US.UTF-8";
-
   i18n.extraLocaleSettings = {
     LC_ADDRESS = "en_US.UTF-8";
     LC_IDENTIFICATION = "en_US.UTF-8";
@@ -74,17 +70,12 @@ in
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Configure keymap in X11
-  services.xserver.xkb = {
-    layout = "us";
-    variant = "";
-  };
-
+  # Enable git with commit signing.
   programs.git = {
     enable = true;
     config = {
       user.name = "Shane Murphy";
-      user.email = gitEmail;
+      user.email = email;
       init.defaultBranch = "main";
 
       # Sign commits and tags with the SSH key instead of GPG.
@@ -96,13 +87,13 @@ in
       # So `git log --show-signature` can verify our own signatures locally.
       gpg.ssh.allowedSignersFile = toString (
         pkgs.writeText "git-allowed-signers" ''
-          ${gitEmail} ${sshPublicKey}
+          ${email} ${sshPublicKey}
         ''
       );
     };
   };
 
-  # Define a user account. Don't forget to set a password with ‘passwd’.
+  # Set up the user account.
   users.users."shane" = {
     isNormalUser = true;
     description = "Shane Murphy";
@@ -115,48 +106,26 @@ in
     ];
   };
 
-  # Allow unfree packages
+  # Allow unfree packages, nothing currently but we aren't *that* much of a purist.
   nixpkgs.config.allowUnfree = true;
 
-  # List packages installed in system profile
+  # System-wide packages.
   environment.systemPackages = with pkgs; [
-    # You gotta have it
+    # For bootsrapping edits before remote editors work.
     neovim
-    # Nix language server (used by Zed over remote SSH)
+    # Nix language server (used by Zed over remote SSH).
     nixd
-    # Nix formatter (`nixfmt`), official RFC 166 style
+    # Nix formatter (`nixfmt`) (again by Zed over remote SSH).
     nixfmt
   ];
 
-  # Some programs need SUID wrappers, can be configured further or are
-  # started in user sessions.
-  # programs.mtr.enable = true;
-  # programs.gnupg.agent = {
-  #   enable = true;
-  #   enableSSHSupport = true;
-  # };
-
-  # List services that you want to enable:
-
-  # Enable the OpenSSH daemon.
+  # Enable OpenSSH daemon.
   services.openssh.enable = true;
+
+  # Configure the system to not sleep on lid closed, server-style.
   services.logind.settings.Login.HandleLidSwitchExternalPower = "ignore";
   services.logind.settings.Login.HandleLidSwitch = "ignore";
 
+  # Compressed on-filesystem swap.
   zramSwap.enable = true;
-
-  # Open ports in the firewall.
-  # networking.firewall.allowedTCPPorts = [ ... ];
-  # networking.firewall.allowedUDPPorts = [ ... ];
-  # Or disable the firewall altogether.
-  # networking.firewall.enable = false;
-
-  # This value determines the NixOS release from which the default
-  # settings for stateful data, like file locations and database versions
-  # on your system were taken. It‘s perfectly fine and recommended to leave
-  # this value at the release version of the first install of this system.
-  # Before changing this value read the documentation for this option
-  # (e.g. man configuration.nix or on https://nixos.org/nixos/options.html).
-  system.stateVersion = "26.05"; # Did you read the comment?
-
 }
