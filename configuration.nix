@@ -4,6 +4,12 @@
 
 { pkgs, ... }:
 
+let
+  # Shane's laptop SSH key. Used both to authorise SSH logins and to sign
+  # git commits/tags — git can sign with an SSH key directly, no GPG needed.
+  sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBwRBMnr95gqzkvJHmNDCprKK2QcV2vNQVS6mAsGzcz3";
+  gitEmail = "mail@semurphy.com";
+in
 {
   imports = [
     # Include the results of the hardware scan.
@@ -78,8 +84,21 @@
     enable = true;
     config = {
       user.name = "Shane Murphy";
-      user.email = "mail@semurphy.com";
+      user.email = gitEmail;
       init.defaultBranch = "main";
+
+      # Sign commits and tags with the SSH key instead of GPG.
+      gpg.format = "ssh";
+      user.signingKey = sshPublicKey;
+      commit.gpgSign = true;
+      tag.gpgSign = true;
+
+      # So `git log --show-signature` can verify our own signatures locally.
+      gpg.ssh.allowedSignersFile = toString (
+        pkgs.writeText "git-allowed-signers" ''
+          ${gitEmail} ${sshPublicKey}
+        ''
+      );
     };
   };
 
@@ -92,7 +111,7 @@
       "wheel"
     ];
     openssh.authorizedKeys.keys = [
-      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBwRBMnr95gqzkvJHmNDCprKK2QcV2vNQVS6mAsGzcz3"
+      sshPublicKey
     ];
   };
 
