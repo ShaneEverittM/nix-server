@@ -1,13 +1,19 @@
 # NixOS configuration for a lil' home server.
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 let
   sshPublicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBwRBMnr95gqzkvJHmNDCprKK2QcV2vNQVS6mAsGzcz3";
   email = "mail@semurphy.com";
 in
 {
-  # Grab the generated config from the installer, mostly just kernel modules and filesystem mounts.
-  imports = [ ./hardware-configuration.nix ];
+  imports = [
+    # Grab the generated config from the installer, mostly just kernel modules and filesystem mounts.
+    ./hardware-configuration.nix
+
+    # Run home-manager as part of the system build, so `nh os switch` applies
+    # user-level config too — no separate home-manager CLI to invoke.
+    inputs.home-manager.nixosModules.home-manager
+  ];
 
   # The version this configration is authored against.
   system.stateVersion = "26.05";
@@ -70,26 +76,39 @@ in
     LC_TIME = "en_US.UTF-8";
   };
 
-  # Enable git with commit signing.
-  programs.git = {
-    enable = true;
-    config = {
-      user.name = "Shane Murphy";
-      user.email = email;
-      init.defaultBranch = "main";
+  # User-level config, borrowed piecemeal from the personal flake.
+  home-manager = {
+    # Use the system's nixpkgs (and its allowUnfree etc.) instead of evaluating
+    # a private copy per user, and install user packages via the system profile.
+    useGlobalPkgs = true;
+    useUserPackages = true;
 
-      # Sign commits and tags with the SSH key instead of GPG.
-      gpg.format = "ssh";
-      user.signingKey = sshPublicKey;
-      commit.gpgSign = true;
-      tag.gpgSign = true;
+    users."shane" = {
+      imports = [
+        # Git behavior (aliases, diff-so-fancy pager, LFS filters, colors).
+        # Identity stays out of the shared module and is injected below via
+        # its publicHome.git options. Replaces the system-wide programs.git
+        # we used to configure here; signing setup is unchanged.
+        inputs.personal.homeModules.git
+      ];
 
-      # So `git log --show-signature` can verify our own signatures locally.
-      gpg.ssh.allowedSignersFile = toString (
-        pkgs.writeText "git-allowed-signers" ''
-          ${email} ${sshPublicKey}
-        ''
-      );
+      # The git module expects these on PATH (see its header comment).
+      home.packages = with pkgs; [
+        git-lfs
+        diff-so-fancy
+      ];
+
+      publicHome.git = {
+        userName = "Shane Murphy";
+        userEmail = email;
+        signingKey = sshPublicKey;
+      };
+
+      # The shared module signs commits; also sign tags like we did before.
+      programs.git.settings.tag.gpgsign = true;
+
+      # Home-manager's compatibility anchor, same idea as system.stateVersion.
+      home.stateVersion = "26.05";
     };
   };
 
