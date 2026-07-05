@@ -117,6 +117,8 @@ in
     nixd
     # Nix formatter (`nixfmt`) (again by Zed over remote SSH).
     nixfmt
+    # System info at a glance.
+    fastfetch
   ];
 
   # Enable OpenSSH daemon.
