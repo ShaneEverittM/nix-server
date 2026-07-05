@@ -1,5 +1,8 @@
 {
   "languages": {
+    "JSONC": {
+      "tab_size": 2
+    },
     "Nix": {
       "language_servers": ["nixd", "!nil"],
       "format_on_save": "on",
