@@ -16,6 +16,13 @@
 
   programs.nix-ld.enable = true;
 
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  programs.nh = {
+    enable = true;
+    flake = "/home/shane/.config/nix";
+  };
+
   networking.hostName = "nixos"; # Define your hostname.
   networking.wireless = {
     enable = true;
